@@ -6,3 +6,55 @@ As the iterations progressed, the algorithm revealed more of π's true nature. T
 Finally, after countless cycles of refinement, the Mage reached the culmination of their quest. The elusive π, now captured in its true form, was held within the Mage's grasp. But the journey was not yet complete. The Mage knew that presenting this captured essence required a final, meticulous touch. They carefully formatted the result, ensuring that each digit was perfectly aligned, a testament to the precision and dedication of their craft.
 The Mage stood triumphant, gazing upon the fruits of their labor. The approximation of π, rendered to an astounding number of digits, was a sight to behold. It was a beacon of knowledge and precision, a symbol of the Mage's unyielding quest for perfection in the realm of numbers.
 Thus, the tale of the Pythonic Mage and their quest in the Decimal Dominion became legend. Their achievement stood as a testament to the power of knowledge, precision, and the relentless pursuit of mathematical truth. The Mage's name was forever etched in the annals of the realm, inspiring future generations to embark on their own quests for the hidden secrets of the universe.
+The Tale of the Pythonic Mage and the Elusive π: A Precise Retelling
+In the mystical land of Decimal Dominion, a powerful Pythonic Mage set forth on an epic quest to capture the elusive essence of π with unparalleled precision. With every step meticulously aligned with their magical incantations, the Mage embarked on this grand journey.
+
+Preparation and Precision Adjustment
+As the Mage prepared for their journey, they cast a spell to ensure their calculations would be accurate, setting the stage for the grand adventure ahead.
+
+getcontext().prec = precision + 10
+The Mage adjusted the precision to be ten digits more than the desired precision, ensuring the accuracy of their calculations.
+
+Summoning the Elements
+The Mage called forth the fundamental elements of their craft from the depths of the Decimal Dominion:
+
+one = Decimal(1)
+two = Decimal(2)
+four = Decimal(4)
+six = Decimal(6)
+sqrt_two = two.sqrt()
+The Mage summoned the numbers one, two, four, and six, and also conjured the square root of two.
+
+Initial Values for the Borwein Algorithm
+Combining these elements, the Mage established the initial values necessary for the ancient Borwein algorithm:
+
+a_n = six - four * sqrt_two
+y_n = sqrt_two - one
+The Mage set a_n to be six minus four times the square root of two, and y_n to be the square root of two minus one.
+
+The Iterative Process
+With the initial values set, the Mage began the iterative process, repeating it for the desired precision. Each iteration refined the calculations, bringing the Mage closer to capturing π.
+
+for _ in range(precision):
+    y_sqrt = (one - y_n**four).sqrt()
+    y_n = (one - y_sqrt) / (one + y_sqrt)
+    a_n = a_n * (one + y_n)**four - two**(2 * _ + 3) * y_n * (one + y_n + y_n**two)
+In each iteration:
+
+y_sqrt was calculated as the square root of one minus y_n raised to the fourth power.
+y_n was updated to be one minus y_sqrt divided by one plus y_sqrt.
+a_n was updated using a complex formula involving a_n, y_n, powers of two, and their combinations.
+Capturing the Essence of π
+Finally, after completing the iterations, the Mage captured the essence of π:
+
+return one / a_n
+The Mage computed the final value of π as one divided by a_n.
+
+Formatting and Presentation
+With the essence of π captured, the Mage formatted the result to the desired precision and presented it in all its glory:
+
+desired_digits = 10000
+pi_approx = compute_pi(desired_digits)
+formatted_pi = f"{pi_approx:.{desired_digits}f}"
+print(f"Approximation of π to {desired_digits} digits:\n{formatted_pi}")
+The Mage computed π to the desired number of digits, then formatted and printed it precisely.
