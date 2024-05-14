@@ -1,0 +1,225 @@
+Ladies and Gentlemen of the Quantum Physics Community:
+
+  I want you to make a Pseudorandom Number Generator!
+
+  And why not!  I’m just a crypto nerd working on computers, I only get a few discrete bits and a handful of mathematical operations.  You have such an enormous bag of tricks to work with!  You’ve got a continuous domain, trigonometry, complex numbers, eigenvectors…you could make a PRNG for the universe!  Can you imagine it?  Your code could be locally hidden in every electron, proton, fermion, boson in creation.
+
+  Don’t screw it up, though.  I can’t possibly guess what chaos would (or would fail to) erupt, if multiple instances of a PRNG shared a particular seed, and emitted identical randomness in different places far, far away.  Who knows what paradoxes might form, what trouble you might find yourself entangled with, what weak interactions might expose your weak non-linearity.  Might be worth simulating all this, just to be sure.
+
+  After all, we wouldn’t want anyone saying, “Not even God can get crypto right”.
+
+—–
+
+  Cryptographically Secure Pseudorandom Number Generators are interesting.  Given a relatively small amount of data (just 128 bits is fine) they generate an effectively unlimited stream of bits completely indistinguishable from the ephemeral quantum noise of the Universe.  The output is as deterministic as the digits of pi, but no degree of scientific analysis, no amount of sample data will ever allow a model to form for what bits will come next.
+
+  In a way, CSPRNGs represent the most practical demonstration of Godel’s First Incompleteness Theorem, which states that for a sufficiently complex system, there can be things that are true about it that can never be proven within the rules of that system.  Science is literally the art of compressing vast amounts of experimentally derived output on the nature of things, to a beautiful series of rules that explains it.  But as much as we can model things from their output with math, math can create things we can never model.  There can be a thing that is true — there are hidden variables in every CSPRNG — but we would never know.
+
+  And so an interesting question emerges.  If a CSPRNG is indistinguishable from the quantum noise of the Universe, how would we know if the quantum noise of the universe was not itself a CSPRNG?  There’s an infinite number of ways to construct a Random Number Generator, what if Nature tried its luck and made one more?  Would we know?
+
+  Would it be any good?
+
+   I have no idea.  I’m just a crypto nerd.  So I thought I’d look into what my “nerds from another herd”, Quantum Physicists, had discovered.
+
+—–
+
+  Like most outsiders diving into this particular realm of science, I immediately proceeded to misunderstand what Quantum Physics had to say.  I thought Bell’s Theorem ruled out anything with secret patterns:
+
+“No physical theory of local hidden variables can ever reproduce all the predictions of quantum mechanics.”  
+
+  I thought that was pretty strange.  Cryptography is the industrial use of chaotic systems with hidden variables.  I had read this to mean, if there were ever local hidden variables in the random data that quantum mechanics consumed, the predictions would be detectably different from experimental evidence.
+
+  Quantum Physics is cool, it’s not that cool.  I have a giant set of toys for encrypting hidden variables in a completely opaque datastream, what, I just take my bits, put them into a Quantum Physics simulation, and see results that differ from experimental evidence?  The non-existence of a detection algorithm distinguishing encrypted datastreams from pure quantum entropy, generic across all formulations and levels of complexity, might very well be the safest conjecture in the history of mathematics.  If such a thing existed, it wouldn’t be one million rounds of AES we’d doubt, it’d be the universe.
+
+  Besides, there’s plenty of quantum mechanical simulations on the Internet, using JavaScript’s Math.Random.  That’s not exactly a Geiger counter sitting next to a lump of Plutonium.  This math needs uniform distributions, it does not at all require unpredictable ones.
+
+  But of course I completely misunderstood Bell.  He based his theorem on what are now called Bell Inequalities.  They describe systems that are in this very weird state known as entanglement, where two particles both have random states relative to the universe, but opposite states relative to eachother.  It’s something of a bit repeat; an attacker who knows a certain “random” value is 1 knows that another “random” value is 0.  But it’s not quite so simple.  The classical interpretation of entanglement often demonstrated in relation to the loss of a shoe (something I’m familiar with, long story).  You lose one shoe, the other one is generally identical.
+
+  But Bell inequalities, extravagantly demonstrated for decades, demonstrate that’s just not how things work down there because the Universe likes to be weird.  Systems at that scale don’t have a ground truth, as much as a range of possible truths.  Those two particles that have been entangled, it’s not their truth that is opposite, it’s their ranges.  Normal cryptanalysis isn’t really set up to understand that — we work in binaries, 1’s and 0’s.  We certainly don’t have detectors that can be smoothly rotated from “detects 1’s” to “detects 0’s”, and if we did we would assume as they rotated there would be a linear drop in 1’s detected matching a linear increase in 0’s.
+
+  When we actually do the work, though, we never see linear relationships.  We always see curves, cos^2 in nature, demonstrating that the classical interpretation is wrong.  There are always two probability distributions intersecting.
+
+—–
+
+  Here’s the thing, and I could be wrong, but maybe I’ll inspire something right.  Bell Inequalities prove a central thesis of quantum mechanics — that reality is probabilistic — but Bell’s Theorem speaks about all of quantum mechanics.  There’s a lot of weird stuff in there!  Intersecting probability distributions is required, the explanations that have been made for them are not necessarily necessary.
+
+  More to the point, I sort of wonder if people think it’s “local hidden variables” XOR “quantum mechanics” — if you have one, you can’t have the other.  Is that true, though?  You can certainly explain at least Bell Inequalities trivially, if the crystal that is emitting entangled particles emits equal and opposite polarizations, on average.  In other words, there’s a probability distribution for each photon’s polarization, and it’s locally probed at the location of the crystal, twice.
+
+  I know, it would seem to violate conservation of angular momentum.  But, c’mon.  There’s lots of spare energy around.  It’s a crystal, they’re weird, they can get a tiny bit colder.  And “Nuh-uh-uh, Isaac Newton!  For every action, there is an equal and opposite probability distribution of a reaction!” is really high up on the index of Shit Quantum Physicists Say.
+
+Perhaps more likely, of course, is that there’s enough hidden state to bias the probability distribution of a reaction, or is able to fully describe the set of allowable output behaviors for any remote unknown input.  Quantum Physics biases random variables.  It can bias them more.  What happens to any system with a dependency on random variables that suddenly aren’t?  Possibly the same thing that happens to everything else.
+
+  Look.  No question quantum mechanics is accurate, it’s predictive of large chunks of the underlying technology the Information Age is built on.  The experiment is always right, you’re just not always sure what it’s right about.  But to explain the demonstrable truths of probability distribution intersection, Quantum Physicists have had to go to some pretty astonishing lengths.  They’ve had to bend on the absolute speed limit of the universe, because related reactions were clearly happening in multiple places in a manner that would require superluminal (non-)communication.
+
+  I guess I just want to ask, what would happen if there’s just a terrible RNG down there — non-linear to all normal analysis, but repeat its seed in multiple particles and all hell breaks loose?  No really, what would happen?
+
+   Because that is the common bug in all PRNGs, cryptographically secure and otherwise.  Quantum mechanics describes how the fundamental unstructured randomness of the universe is shaped and structured into probability distributions.  PRNGs do the opposite — they take structure, any structure, even fully random bits limited only by their finite number — and make them an effectively unbound stream indistinguishable from what the Universe has to offer.
+
+  The common PRNG bug is that if the internal state is repeated, if the exact bits show up in the same places and the emission counter (like the digit of pi requested) is identical, you get repeated output.
+
+  I’m not saying quantum entanglement demonstrates bad crypto.  I wouldn’t know.  Would you?
+
+  Because here’s the thing.  I like quantum physics.  I also like relativity.  The two fields are both strongly supported by the evidence, but they don’t exactly agree with one another.  Relativity requires nothing to happen faster than the speed of light; Quantum Physics kind of needs its math to work instantaneously throughout the universe.  A sort of detente has been established between the two successful domains, called the No Communication theorem.  As long as only the underlying infrastructure of quantum mechanics needs to go faster than light, and no information from higher layers can be transmitted, it’s OK.
+
+   It’s a decent hack, not dissimilar to how security policies never seem to apply to security systems.  But how could that even work?  Do particles (or waves, or whatever) have IP addresses?  Do they broadcast messages throughout the universe, and check all received messages for their identifier?  Are there routers to reduce noise?  Do they maintain some sort of line of sight at least?  At minimum, there’s some local hidden variable even in any non-local theory, because the system has to decide who to non-locally communicate with.  Why not encode a LUT (Look Up Table) or a function that generates the required probability distributions for all possible future interactions, thus saving the horrifying complexity of all particles with network connections to all other particles?
+
+  Look, one can simulate weak random number generators in each quantum element, and please do, but I think non-locality must depend on some entirely alien substrate, simulating our universe with a speed of light but choosing only to use that capacity for its own uses.  The speed of light itself is a giant amount of complexity if instantaneous communication is available too.
+
+  Spooky action at a distance, time travel, many worlds theories, simulators from an alien dimension…these all make for rousing episodes of Star Trek, but cryptography is a thing we actually see in the world on a regular basis.  Bad cryptography, even more so.
+
+—-
+
+  I mentioned earlier, at the limit, math may model the universe, but our ability to extract that math ultimately depends on our ability to comprehend the patterns in the universe’s output.  Math is under no constraint to grant us analyzable output.
+
+  Is the universe under any constraint to give us the amount of computation necessary to construct cryptographic functions?  That, I think, is a great question.
+
+  At the extreme, the RSA asymmetric cipher can be interpreted symmetrically as F(p,q)==n, with p and q being large prime numbers and F being nothing more than multiply.  But that would require the universe to support math on numbers hundreds of digits long.  There’s a lot of room at the bottom but even I’m not sure there’s that much.  There’s obviously some mathematical capacity, though, or else there’d be nothing (and no one) to model.
+
+  It actually doesn’t take that much to create a bounded function that resists (if not perfectly) even the most highly informed degree of relinearizing statistical work, cryptanalysis.  This is XTEA:
+
+/* take 64 bits of data in v[0] and v[1] and 128 bits of key[0] - key[3] */
+
+void encipher(unsigned int num_rounds, uint32_t v[2], uint32_t const key[4]) {
+    unsigned int i;
+    uint32_t v0=v[0], v1=v[1], sum=0, delta=0x9E3779B9;
+    for (i=0; i < num_rounds; i++) {
+        v0 += (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+        sum += delta;
+        v1 += (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum>>11) & 3]);
+    }
+    v[0]=v0; v[1]=v1;
+}
+  (One construction for PRNGs, not the best, is to simply encrypt 1,2,3… with a secret key.  The output bits are your digits, and like all PRNGs, if the counter and key repeat, so does the output.)
+
+  The operations we see here are:
+
+The use of a constant.  There are certainly constants of the universe available at 32 bits of detail.
+Addition.  No problem.
+Bit shifts.  So that’s two things — multiplication or division by a power of two, and quantization loss of some amount of data.  I think you’ve got that, it is called quantum mechanics after all.
+XOR and AND.  This is tricky.  Not because you don’t have exclusion available — it’s not called Pauli’s Let’s Have A Party principle — but because these operations depend on a sequence of comparisons across power of two measurement agents, and then combining the result.  Really easy on a chip, do you have that kind of magic in your bag of tricks?  I don’t know, but I don’t think so.
+  There is a fifth operation that is implicit, because this is happening in code.  All of this is happening within a bitvector 32 bits wide, or GF(2^32), or % 2**32, depending on which community you call home.  Basically, all summation will loop around.  It’s OK, given the proper key material there’s absolutely an inverse function that will loop backwards over all these transformations and restore the original state (hint, hint).
+
+  Modular arithmetic is the math of clocks, so of course you’d expect it to exist somewhere in a world filled with things that orbit and spin.  But, in practical terms, it does have a giant discontinuity as we approach 1 and reset to 0.  I’m sure that does happen — you either do have escape velocity and fly off into the sunset, or you don’t, crash back to earth, and *ahem* substantially increase your entropy — but modular arithmetic seems to mostly express at the quantum scale trigonometrically.  Sine waves can possibly be thought of as a “smoothed” mod, that exchanges sharp edges for nice, easy curves.
+
+  Would trig be an improvement to cryptography?  Probably not! It would probably become way easier to break!  While the universe is under no constraint to give you analyzable results, it’s also under no constraint not to.  Crypto is hard even if you’re trying to get it right; randomly throwing junk together will (for once) not actually give you random results.
+
+  And not having XOR or AND is something notable (a problem if you’re trying to hide the grand secrets of the universe, a wonderful thing if you’re trying to expose them).  We have lots of functions made out of multiply, add, and mod.  They are beloved by developers for the speed at which they execute.  Hackers like ‘em too, they can be predicted and exploited for remote denial of service attacks.  A really simple function comes from the legendary Dan Bernstein:
+
+unsigned djb_hash(void *key, int len)
+{
+    unsigned char *p = key;
+    unsigned h = 0;
+    int i;
+
+    for (i = 0; i < len; i++)
+    {
+        h = 33 * h + p[i];
+    }
+
+    return h;
+}
+  You can see the evolution of these functions at http://www.eternallyconfuzzled.com/tuts//jsw_tut_hashing.aspx , what should be clear is that there are many ways to compress a wide distribution into a small one, with various degrees of uniformity and predictability.
+
+  Of course, Quantum Physicists actually know what tools they have to model the Universe at this scale, and their toolkit is vast and weird.  A very simple compression function though might be called Roulette — take the sine of a value with a large normal or Poisson distribution, and emit the result.  The output will be mostly (but not quite actually) uniform.
+
+  Now, such a terrible RNG would be vulnerable to all sorts of “chosen plaintext” or “related key” attacks.  And while humans have learned to keep the function static and only have dynamic keys if we want consistent behavior, wouldn’t it be tragic if two RNGs shipped with identical inputs, one with a RNG configured for sine waves, the other configured for cosine?  And then the results were measured against one another?  Can you imagine the unintuitive inequalities that might form?
+
+  Truly, it would be the original sin.
+
+—–
+
+  I admit it.  I’m having fun with this (clearly).  Hopefully I’m not being too annoying.  Really, finally diving into the crazy quantum realm has been incredibly entertaining.  Have you ever heard of Young’s experiment?  It was something like 1801, and he took a pinhole of sunlight coming through a wall and split the light coming out of it with a note card.  Boom!  Interference pattern!  Proved the existence of some sort of wave nature for light, with paper, a hole, and the helpful cooperation of a nearby stellar object.  You don’t always need a particle accelerator to learn something about the Universe..
+
+  You might wonder why I thought it’d be interesting to look at all this stuff.  I blame Nadia Heninger.  She and her friends discovered that about (actually, at least) one in two hundred private cryptographic keys were actually shared between systems on the Internet, and were thus easily computed.  Random number generation had been shown to have not much more than two nines of reliability in a critical situation.  A lot of architectures for better RNG had been rejected, because people were holding out for hardware.  Now, of course, we actually do have decent fast RNG in hardware, based on actual quantum noise.  Sometimes people are even willing to trust it.
+
+  Remember, you can’t differentiate the universe from hidden variable math, just on output alone.
+
+  So I was curious what the de minimus quantum RNG might look like.  Originally I wanted to exploit the fact that LEDs don’t just emit light, they generate electricity when illuminated.  That shouldn’t be too surprising, they’re literally photodiodes.  Not very good ones, but that’s kind of the charm here.  I haven’t gotten that working yet, but what has worked is:
+
+An arduino
+A capacitor
+There is no 3
+  It’s a 1 Farad, 5V capacitor.  It takes entire seconds to charge up.  I basically give it power until 1.1V, and let it drain to 1.0V.  Then I measure, with my nifty 10 bit ADC, just how much voltage there is per small number of microseconds.
+
+  Most, maybe all TRNGs, come down to measuring a slow clock with a fast clock.  Humans are pretty good at keeping rhythm at the scale of tens of milliseconds.  Measure us to the nanosecond, and that’s just not what our meat circuits can do consistently.
+
+   How much measurement is enough?  10 bits of resolution to model the behavior of trillions of electrons doesn’t seem like much.  There’s structure in the data of course, but I only need to think I have about 128 bits before I can do what you do, and seed a CSPRNG with the quantum bits.  It’ll prevent any analysis of the output that might be, you know, correlated with temperature or power line conditions or whatnot.
+
+  And that’s the thing with so-called True RNGs, or TRNGs.  Quantum Physics shapes the fundamental entropy of the universe, whether you like it or not, and acts as sort of a gateway filter to the data you are most confident lacks any predictable structure, and adds predictable structure.  So whenever we build a TRNG, we always overcollect, and very rarely directly expose.  The great thing about TRNGs is — who knows what junk is in there?  The terrifying thing about TRNGs is, not you either.
+
+  In researching this post, I found the most entertaining paper:  Precise Monte Carlo Simulation of Single Photon Detectors (https://arxiv.org/pdf/1411.3663.pdf).  It had this quote:
+
+Using a simple but very demanding example of random number generation via detection of Poissonian photons exiting a beam splitter, we present a Monte Carlo simulation that faithfully reproduces the serial autocorrelation of random bits as a function of detection frequency over four orders of magnitude of the incident photon flux.
+
+  See, here is where quantum nerds and crypto nerds diverge.
+
+  Quantum nerds:  “Yeah, detectors suck sometimes, universe is fuzzy whatcha gonna do”
+
+  Crypto nerds:  “SERIAL AUTOCORRELATION?!  THAT MEANS YOUR RANDOM BITS ARE NOT RANDOM”
+
+  Both are wrong, both are right, damn superposition.  It might be interesting to investigate further.
+
+—–
+
+  You may have noticed throughout this post that I use the phrase randomness, instead of entropy.  That is because entropy is a term that cryptographers borrowed from physicists.  For us, entropy is just an abstract measure of how much we’d have to work if we threw up our hands on the whole cryptanalysis enterprise and just tried every possibility.  For experimental physicists, entropy is something of a thing, a condition, that you can remove from a system like coal on a cart powered by a laser beam.
+
+  Maybe we should do that.  Let me explain.  There is a pattern, when we’re attacking things, that the closer you get to the metal the more degrees of freedom you have to mess with its normal operations.  One really brutal trick involves bypassing a cryptographic check, by letting it proceed as expected in hardware, and then just not providing enough electrons to the processor at the very moment it needs to report the failure.  You control the power, you control the universe.
+
+   Experimental physicists control a lot of this particular universe.  You know what sort of cryptographic attack we very rarely get to do?  A chosen key attack.
+
+  Maybe we should strip as much entropy from a quantum system as physically possible, and see just how random things are inside the probability distributions that erupt upon stimulation.  I don’t think we’ll see any distributional deviations from quantum mechanics, but we might see motifs (to borrow a phrase from bioinformatics) — sequences of precise results that we’ve seen before.  Course grain identity, fine grain repeats.
+
+  Worth taking a look.  Obviously, I don’t need to tell physicists how to remove entropy from their system.  But it might be worth mentioning, if you make things whose size isn’t specified to matter, a multiple of prime integer relationships to a size that is known to be available to the system, you might see unexpected peaks as integer relationships in unknown equations expose as sharing factors with your experimental setup.  I’m not quite sure you’ll find anything, and you’ll have to introduce some slop (and compensate for things like signals propagating at different speeds as photons in free space or electronic vibrations within objects) maybe, if this isn’t already common exploratory experimental process, you’ll find something cool.
+
+—
+
+   I know, I’m using the standard hacker attack patterns where they kind of don’t belong.  Quantum Physics has been making some inroads into crypto though, and the results have been interesting.  If you think input validation is hard now, imagine if packet inspection was made illegal by the laws of the Universe.  There was actually this great presentation at CCC a few years ago that achieved 100% key recovery on common quantum cryptographic systems — check it out.
+
+   So maybe there’s some links between our two worlds, and you’ll grant me some leeway to speculate wildly (if you’ve read this far, I’m hoping you already have).  Let’s imagine for a moment, that in the organization I’ll someday run with a small army dedicated to fixing the Internet, I’ve got a couple of punk experimentalist grad students who know their way around an optics table and still have two eyes.  What would I suggest they do?
+
+  I see lots of experiments providing positive confirmation of quantum mechanics, which is to be expected because the math works.  But you know, I’d try something else.  A lot of the cooler results from Quantum Physics show up in the two slit experiment, where coherent light is shined through two slits and interferes as waves on its way to a detector.  It’s amazing, particularly since it shows up even when there’s only one photon, or one electron, going through the slits.  There’s nothing else to interfere with!  Very cool.
+
+  There’s a lot of work going on in showing interference patterns in larger and larger things.  We don’t quite know why the behaviors correctly predicted by Quantum Physics don’t show up in, like, baseballs.  The line has to be somewhere, we don’t know why or where.  That’s interesting work!  I might do something else, though.
+
+  There exists an implemented behavior:  An interference pattern.  It is fragile, it only shows up in particular conditions.  I would see what breaks that fragile behavior, that shouldn’t.  The truth about hacking is that as creative as it is, it is the easy part.  There is no human being on the planet that can assemble a can of Coca-Cola, top to bottom.  Almost any person can destroy a can though, along with most of the animal kingdom and several natural processes.
+
+  So yes.  I’m suggesting fuzzing quantum physics.  For those who don’t know, a lot of systems will break if you just throw enough crap at the wall.  Eventually you’ll hit some gap between the model a developer had in his mind for what his software did, and what behaviors he actually shipped.
+
+  Fuzzing can be completely random, and find lots of problems.  But one of the things we’ve discovered over the years is that understanding what signals a system is used to processing, and composing them in ways a system is not used to processing, exposes all sorts of failure conditions.  For example, I once fuzzed a particular web browser.  Those things are huge!  All sorts of weird parsers, that can be connected in almost but not quite arbitrary ways.  I would create these complex trees of random objects, would move elements from one branch to another, would delete a parent while working on a child, and all the while, I’d stress the memory manager to make sure the moment something was apparently unneeded, it would be destroyed.
+
+  I tell you, I’d come to work the next day and it’d be like Christmas.  I wonder what broke today!  Just because it can compose harmlessly, does not at all mean it will.  Shared substrates like the universe of gunk lashing a web browser together never entirely implement their specifications perfectly.  The map is not the territory, and models are always incomplete.
+
+  Here’s the thing.  We had full debuggers set up for our fuzzers.  We would always know exactly what caused a particular crash.  We don’t have debuggers for reality at the quantum scale, though wow, I wish we did.  Time travel debugging would be awesome.  
+
+  I want to be cautious here, but I think this is important to say.  Without a debugger, many crashes look identical.  You would not believe the number of completely different things that can cause a web browser to give up the ghost.  Same crash experience every time, though.  Waves, even interference waves, are actually a really generic failure mode.  The same slits that will pass photons, will also pass air molecules, will also pass water molecules.  Stick enough people in a stadium and give them enough beer and you can even make waves out of people.
+
+  They’re not the same waves, they don’t have the same properties, that’s part of the charm of Quantum Physics.  Systems at different scales do behave differently.  The macro can be identical, the micro can be way, way different.
+
+  Interference is fairly intuitive for multi-particle systems.  Alright, photons spin through space, have constructive and destructive modes when interacting in bulk, sure.  It happens in single photon and electron systems too, though.  And as much as I dislike non-locality, the experiment is always right.  These systems behave as if they know all the paths they could take, and choose one.
+
+  This does not necessarily need to be happening for the same reasons in single photon systems, as it is in long streams of related particles.  It might be!  But, it’s important to realize, there won’t just be waves from light, air, and water.  Those waves will have similarities, because while the mechanisms are completely different, the ratios that drive them remain identical (to the accuracy of each regime).
+
+  Bug collisions are extremely annoying.
+
+  I know I’m speaking a bit out of turn.  It’s OK.  I’m OK with being wrong, I just generally try to not be, you know.  Not even wrong.  What’s so impressive about superposition is that the particle behaves in a manner that belies knowledge it should not have.  No cryptographic interpretation of the results of Quantum Physics can explain that; you cannot operate on data you do not have.  Pilot wave theory is a deterministic conception of quantum physics, not incompatible at all with this cryptographic conjecture, but it too has given up on locality.  You need to have an input, to account for it in your output.
+
+  But the knowledge of the second slit is not necessarily absent from the universe as perceived by the single photon.  Single photon systems aren’t.  It’s not like they’re flying through an infinitely dark vacuum.  There’s black body radiation everywhere, bouncing off the assembly, interfering through the slits, making a mess of things.  I know photons aren’t supposed to feel the force of others at different wavelengths, but we’re talking about the impact on just one.  Last I heard, there’s a tensor field of forces everything has to go through, maybe it’s got a shadow.  And the information required is some factor of the ratio between slits, nothing else.  It’s not nothing but it’s a single value.
+
+  The single particle also needs to pass through the slits.  You know, there are vibratory modes.  Every laser assembly I see isolates the laser from the world.  But you can’t stop the two slits from buzzing, especially when they’re being hit by all those photons that don’t miss the assembly.  Matter is held together by electromagnetic attraction; a single photon versus a giant hunk of mass has more of an energy differential than myself and Earth.  There doesn’t need to be much signal transfer there, to create waves.  There just needs to be transfer of the slit distance.
+
+Might be interesting to smoothly scale your photon count from single photon in the entire assembly (not just reaching the photodetector), through blindingly bright, and look for discontinuities.  Especially if you’re using weak interactions to be trajectory aware.
+
+  In general, change things that shouldn’t matter.  There are many other things that have knowledge of the second photon path.  Reduce the signal so that there’s nothing to work on, or introduce large amounts of noise so it doesn’t matter that the data is there.  Make things hot, or cold.  Introduce asymmetric geometries, make a photon entering the left slit see a different (irrelevant) reality than the photon entering the right.  As in, there are three slits, nothing will even reach the middle slit because it’s going to be blocked by a mirror routing it to the right slit, but the vibratory mode between left and middle is different than that for middle and right.  Or at least use different shapes between the slits, so that the vibratory paths are longer than crow flies distance.  Add notch filters and optical diodes where they shouldn’t do anything.  Mirrors and retroreflectors too.  Use weird materials — ferromagnetic, maybe, or anti-ferromagnetic.  Bismuth needs its day in the sun.  Alter density, I’m sure somebody’s got some depleted uranium around, gravity’s curvature of space might not be so irrelevant.  Slits are great, they’re actually not made out of anything!  You know what might be a great thing to make two slits out of?  Three photodetectors!  Actually, cell phones have gotten chip sensors to be more sensitive than the human eye, which in the right conditions is itself a single photon detector.  I wonder just what a Sony ISX-017 (“Starvis”) can do.
+
+You know what’s not necessarily taking nanoseconds to happen?  Magnetization!  It can occur in femtoseconds and block an electron from the right slit while the left slit is truly none the wiser.  Remember, you need to try each mechanism separately, because the failure mode of anything is an interference pattern.
+
+   Just mess with it!  Professors, tell your undergrads, screw things up.  Don’t set anything on fire.  You might not even have to tell them that.
+
+  And then you go set something on fire, and route your lasers through it.  Bonus points if they’re flaming hoops.  You’ve earned it.
+
+  I’ll be perfectly honest.  If any of this works, nobody would be more surprised than me.  But who knows, maybe this will be like that time somebody suggested we just send an atomic clock into space to unambiguously detect time dilation from relativity.  A hacker can dream!  I don’t want to pretend to be telling anyone how the universe works, because how the heck would I know.  But maybe I can ask a few questions.  Perhaps, strictly speaking, this is a disproof of Bell’s Theorem that is not superdeterminism.  Technically a theory does not need to be correct to violate his particular formulation.  It might actually be the case that this… Quantum Encraption is a local hidden variable theory that explains all the results of quantum mechanics.
+
+–Dan
+
+P.S. This approach absolutely does not predict a deterministic universe.  Laser beams eventually decohere, just not immediately.  Systems can absolutely have a mix of entropy sources, some good, some not.  It takes very, very little actual universal entropy to create completely unpredictable chaos, and that’s kind of the point.  The math still works just as predictably even with no actual randomness at all.  Only if all entropy sources were deterministic at all scales could the universe be as well.  And even then, the interaction of even extremely weak cryptosystems is itself strongly unpredictable over the scale of, I don’t know, billions of state exchanges.  MD5 is weak, a billion rounds of MD5 is not.  So there would be no way to predict or influence the state of the universe even given perfect determinism without just outright running the system.
+
+[edit]P.P.S. “There is no outcome in quantum mechanics that cannot be handled by encraption, because if there was, you could communicate with it.”  I’m not sure that’s correct but you know what passes the no communication theory really easily?  No communication.  Also, please, feel free to mail me privately at dan@doxpara.com or comment below.
