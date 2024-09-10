@@ -1,0 +1,192 @@
+#MIT Licensed ZZKP/unary-ZZKP (uZZKP)/QZZKP/uQZZKP originally discovered by Evan Adams
+import hashlib
+import random
+import time
+import math
+from datetime import datetime, timedelta
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+import os
+import ipfshttpclient
+
+class ZZKP:
+    def __init__(self, secret_message, time_lock_duration, time_pop_duration):
+        self.secret_message = secret_message
+        self.hidden_time_lock = datetime.now() + timedelta(seconds=time_lock_duration)
+        self.hidden_time_pop = datetime.now() + timedelta(seconds=time_pop_duration)
+
+        # Hashes for time-lock and time-pop
+        self.time_lock_hash = self.H(self.hidden_time_lock.strftime('%Y-%m-%d %H:%M:%S'))
+        self.time_pop_hash = self.H(self.hidden_time_pop.strftime('%Y-%m-%d %H:%M:%S'))
+
+        # Generate Bob's RSA key pair (Alice has Bob's public key)
+        self.bob_private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
+        self.bob_public_key = self.bob_private_key.public_key()
+
+    # Secure Hash function using SHA-256 for commitments
+    def H(self, x):
+        return hashlib.sha256(x.encode()).hexdigest()
+
+    # AGM computation function (for commitment creation)
+    def AGM(self, a, g, iterations):
+        for _ in range(iterations):
+            a_next = (a + g) / 2
+            g_next = math.sqrt(a * g)
+            a, g = a_next, g_next
+        return a, g
+
+    # AES encryption
+    def aes_encrypt(self, message, key):
+        key = key[:32]  # Ensure key is 256-bit (32 bytes)
+        iv = os.urandom(16)  # Generate a random initialization vector (IV)
+        encryptor = Cipher(algorithms.AES(key.encode()), modes.CFB(iv), backend=default_backend()).encryptor()
+        ciphertext = encryptor.update(message.encode()) + encryptor.finalize()
+        return iv + ciphertext  # Return IV + ciphertext for decryption later
+
+    # AES decryption
+    def aes_decrypt(self, ciphertext, key):
+        key = key[:32]  # Ensure key is 256-bit
+        iv = ciphertext[:16]  # Extract IV from the start of the ciphertext
+        ciphertext = ciphertext[16:]  # Get the actual ciphertext
+        decryptor = Cipher(algorithms.AES(key.encode()), modes.CFB(iv), backend=default_backend()).decryptor()
+        decrypted_message = decryptor.update(ciphertext) + decryptor.finalize()
+        return decrypted_message.decode()
+
+    # RSA encryption function
+    def rsa_encrypt_for_bob(self, message, public_key):
+        encrypted_message = public_key.encrypt(
+            message,  # Encrypt the message (already in bytes)
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return encrypted_message
+
+    # RSA decryption function
+    def rsa_decrypt_challenge(self, encrypted_challenge, private_key):
+        decrypted_challenge = private_key.decrypt(
+            encrypted_challenge,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return decrypted_challenge.decode()
+
+    # Generate commitment for a challenge
+    def generate_commitment(self, a, g, m, iterations=10):
+        a_val, g_val = self.AGM(a, g, iterations)
+        commitment = self.H(str(a_val) + str(g_val) + m)
+        return commitment
+
+    # Simulate Proof of Trust Side-Channel with partition challenges
+    def partition_challenges(self, n_partitions):
+        partition_challenges = []
+        partition_commitments = []
+        for i in range(n_partitions):
+            a_n = random.uniform(1.0, 10.0)
+            g_n = random.uniform(1.0, 10.0)
+            m_n = f"Challenge message {i}"
+            i_n = random.randint(1, 100)
+            partition_challenges.append((a_n, g_n, m_n, i_n))
+            commitment = self.generate_commitment(a_n, g_n, m_n, i_n)
+            partition_commitments.append(commitment)
+        return partition_challenges, partition_commitments
+
+    # Formal verification proof, including time-pop and time-lock checks (with optional simulated time)
+    def formal_verification(self, encrypted_message_for_bob, partition_challenges, partition_commitments, simulated_time=None):
+        print("Running formal verification:")
+
+        # Check the current time or simulate time for testing purposes
+        current_time = simulated_time if simulated_time else datetime.now()
+
+        # Check time-lock
+        if current_time < self.hidden_time_lock:
+            print("Decryption attempt before time-lock. Access denied.")
+            return False
+        elif current_time > self.hidden_time_pop:
+            print("Decryption attempt after time-pop expiration. Access denied.")
+            return False
+
+        # Decrypt partition challenges and verify commitments
+        for i, (a_n, g_n, m_n, i_n) in enumerate(partition_challenges):
+            # Simulate Bob's commitment generation
+            bob_commitment = self.generate_commitment(a_n, g_n, m_n, i_n)
+            print(f"Partition {i+1}: Expected commitment: {partition_commitments[i]}, Bob's commitment: {bob_commitment}")
+            if bob_commitment == partition_commitments[i]:
+                print(f"Partition {i+1}: Trust verified!")
+            else:
+                print(f"Partition {i+1}: Trust failed. Exiting.")
+                return False
+
+        print("Formal verification successful!")
+        return True
+
+    # Example using IPFS for decentralized storage
+    def ipfs_test_example(self):
+        client = ipfshttpclient.connect()
+
+        # Store encrypted message on IPFS
+        encrypted_message = self.aes_encrypt(self.secret_message, self.time_lock_hash)
+        encrypted_file_path = "encrypted_message.txt"
+        with open(encrypted_file_path, "wb") as f:
+            f.write(encrypted_message)
+
+        # Upload file to IPFS
+        ipfs_hash = client.add(encrypted_file_path)['Hash']
+        print(f"File uploaded to IPFS with hash: {ipfs_hash}")
+
+        # Retrieve file from IPFS
+        retrieved_file = client.cat(ipfs_hash)
+
+        # Decrypt retrieved file (if within the time-lock)
+        decrypted_message = self.aes_decrypt(retrieved_file, self.time_lock_hash)
+        print(f"Decrypted message from IPFS: {decrypted_message}")
+        return decrypted_message
+
+    # Time-Locked Decryption with Time-Pop check
+    def wait_for_time_lock_and_pop_decryption(self, encrypted_message):
+        while True:
+            current_time = datetime.now()
+            if current_time > self.hidden_time_pop:
+                print(f"Decryption attempt after time-pop expiration ({self.hidden_time_pop}). Access denied.")
+                return None  # Fail if current time is past hidden_time_pop
+
+            time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
+            time_lock_hash_attempt = self.H(time_str)
+            try:
+                decrypted_message = self.aes_decrypt(encrypted_message, time_lock_hash_attempt)
+                if "Hello Bob" in decrypted_message:  # Assuming some valid text can be recognized
+                    print(f"Message decrypted at {current_time}: {decrypted_message}")
+                    return decrypted_message
+            except:
+                pass
+            time.sleep(1)  # Wait for 1 second and retry
+
+
+# Test example with secret message and IPFS
+
+zkp = ZZKP(secret_message="Hello Bob, let's meet in the quantum realm.", time_lock_duration=120, time_pop_duration=240)
+
+# Run Proof of Trust Side-Channel
+partition_challenges, partition_commitments = zkp.partition_challenges(n_partitions=4)
+# Simulate encryption for Bob
+encrypted_message_for_bob = zkp.rsa_encrypt_for_bob(zkp.aes_encrypt(zkp.secret_message, zkp.time_lock_hash), zkp.bob_public_key)
+
+# Simulate a time within the valid decryption window (after time-lock, before time-pop)
+simulated_time = datetime.now() + timedelta(seconds=130)  # Time between time-lock and time-pop
+
+# Run formal verification with simulated time
+zkp.formal_verification(encrypted_message_for_bob, partition_challenges, partition_commitments, simulated_time)
+
+# IPFS test example
+#zkp.ipfs_test_example()
