@@ -1,0 +1,361 @@
+#MIT Licensed
+import random
+import networkx as nx
+import pickle
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+from nltk.corpus import wordnet as wn
+import math
+
+# ZKP Class to Handle Zero-Knowledge Proofs with utility tracking and exploration-exploitation strategy
+class ZKP:
+    def __init__(self, filename='zkp_data.pkl'):
+        self.zk_proofs = {}  # Store unary ZKPs with utility scores
+        self.filename = filename  # File to store ZKPs across games
+        self.load_zkp()  # Load previous ZKPs if they exist
+
+    def generate_unary_zkp(self, constraint):
+        """
+        Generates a unary ZKP based on a single constraint with an initial utility score.
+        """
+        index, char = constraint['index'], constraint['char']
+        unary_zkp = {'index': index, 'char': char, 'utility': 0.5, 'explore_prob': 0.1, 'exploit_prob': 0.9}
+        return unary_zkp
+
+    def generate_polynomial_zkp(self):
+        """
+        Composes a polynomial ZKP from unary ZKPs, with cumulative utility based on individual ZKPs.
+        """
+        if not self.zk_proofs:
+            return None  # No proofs to compose
+
+        cumulative_utility = sum(zkp.get('utility', 0.5) for zkp in self.zk_proofs.values()) / len(self.zk_proofs)
+        polynomial_zkp = {'proofs': list(self.zk_proofs.values()), 'utility': cumulative_utility}
+        return polynomial_zkp
+
+    def add_unary_zkp(self, constraint):
+        """
+        Adds a new unary ZKP based on the provided constraint, if it doesn't already exist.
+        """
+        unary_zkp = self.generate_unary_zkp(constraint)
+        zkp_key = f"{constraint['index']}-{constraint['char']}"
+        if zkp_key not in self.zk_proofs:
+            self.zk_proofs[zkp_key] = unary_zkp
+
+    def get_zkp_proof(self):
+        """
+        Get the polynomial ZKP, which includes cumulative utility.
+        """
+        return self.generate_polynomial_zkp()
+
+    def select_zkp(self):
+        """
+        Selects a ZKP using exploration vs exploitation strategy.
+        """
+        zkps = list(self.zk_proofs.values())
+        if len(zkps) == 0:
+            return None
+
+        # Multi-Armed Bandit: Choose between exploration and exploitation
+        probabilities = [zkp['exploit_prob'] for zkp in zkps]
+        selected_zkp = np.random.choice(zkps, p=probabilities)
+        return selected_zkp
+
+    def update_zkp_utility(self, constraint, utility_delta):
+        """
+        Updates the utility score of a ZKP based on its performance in the guessing process.
+        """
+        zkp_key = f"{constraint['index']}-{constraint['char']}"
+        if zkp_key in self.zk_proofs:
+            zkp = self.zk_proofs[zkp_key]
+            zkp['utility'] += utility_delta
+
+            # Adjust explore/exploit probabilities based on utility
+            zkp['explore_prob'] = max(0.1, zkp['explore_prob'] * (1 - utility_delta))
+            zkp['exploit_prob'] = min(0.9, zkp['exploit_prob'] + utility_delta)
+
+    def evaluate_zkps(self, remaining_words):
+        """
+        Evaluate and update ZKP utility based on how much they reduce the set of remaining words.
+        """
+        for zkp_key, zkp in self.zk_proofs.items():
+            index, char = zkp['index'], zkp['char']
+            filtered_words = [word for word in remaining_words if len(word) > index and word[index] == char]
+            reduction_ratio = len(filtered_words) / len(remaining_words)
+
+            # Utility Delta: The more reduction, the higher the utility increment
+            if reduction_ratio < 1.0:
+                self.update_zkp_utility({'index': index, 'char': char}, 1 - reduction_ratio)
+
+    def save_zkp(self):
+        """
+        Save ZKPs and their utility scores to a file for future use.
+        """
+        with open(self.filename, 'wb') as f:
+            pickle.dump(self.zk_proofs, f)
+
+    def load_zkp(self):
+        """
+        Load ZKPs from a file if they exist, and ensure all ZKPs have a 'utility' field.
+        """
+        if os.path.exists(self.filename):
+            with open(self.filename, 'rb') as f:
+                self.zk_proofs = pickle.load(f)
+
+            # Ensure all loaded ZKPs have a utility field, defaulting to 0.5 if missing
+            for zkp_key, zkp in self.zk_proofs.items():
+                if 'utility' not in zkp:
+                    self.zk_proofs[zkp_key]['utility'] = 0.5
+
+class WordNetProver:
+    def __init__(self, secret_word):
+        self.secret_word = secret_word  # Prover's secret word
+
+    # Prover responds by revealing a part of the word based on the challenge
+    def respond(self, challenge):
+        start, length = challenge
+        return self.secret_word[start:start+length]
+
+    # Prover verifies if their response is valid for the challenge
+    def check_response(self, response, challenge):
+        start, length = challenge
+        expected_response = self.secret_word[start:start+length]
+        return response == expected_response
+
+class WordNetVerifier:
+    def __init__(self, word_length, zkp_system):
+        self.word_length = word_length
+        self.constraints = []
+        self.zkp_system = zkp_system
+        self.previous_guesses = set()
+        self.entropy = 0  # Track entropy reduction over time
+
+    def issue_challenge(self):
+        """
+        Issues a random challenge based on the word length.
+        """
+        start = random.randint(0, self.word_length - 2)
+        length = random.randint(1, min(3, self.word_length - start))
+        return (start, length)
+
+    def add_constraint(self, challenge, response):
+        """
+        Adds a constraint based on the challenge and the response.
+        """
+        start, length = challenge
+        for i in range(length):
+            constraint = {'index': start + i, 'char': response[i]}
+            self.constraints.append(constraint)
+            self.zkp_system.add_unary_zkp(constraint)
+
+    def generate_guess(self, wordnet_graph):
+        """
+        Generate a guess based on the current ZKPs and the reduced word space.
+        """
+        zkp_proof = self.zkp_system.get_zkp_proof()
+        if zkp_proof is None:
+            print("Verifier: No valid proof for a guess yet.")
+            return None
+
+        # Use ZKP-based graph reduction to systematically narrow the word set
+        possible_guesses = filter_words_by_constraints(wordnet_graph, self.constraints)
+        self.entropy = self.calculate_entropy(possible_guesses)  # Update entropy
+
+        # Choose the guess with the highest utility and lowest entropy
+        possible_guesses = sorted(possible_guesses, key=lambda guess: self.calculate_guess_utility(guess))
+
+        if not possible_guesses:
+            return None
+
+        guess = possible_guesses[0]
+        self.previous_guesses.add(guess)
+        return guess
+
+    def calculate_entropy(self, possible_words):
+        """
+        Calculate Shannon entropy of the current word set.
+        """
+        total_words = len(possible_words)
+        if total_words == 0:
+            return 0
+        return -sum((1 / total_words) * math.log(1 / total_words, 2) for _ in possible_words)
+
+    def calculate_guess_utility(self, guess):
+        """
+        Calculate the utility of a guess based on how well it matches the ZKP constraints.
+        """
+        utility_score = 0
+        for constraint in self.constraints:
+            index, char = constraint['index'], constraint['char']
+            if len(guess) > index and guess[index] == char:
+                zkp_key = f"{index}-{char}"
+                utility_score += self.zkp_system.zk_proofs.get(zkp_key, {}).get('utility', 0.5)
+        return utility_score
+
+    def update_zkp_utilities(self, remaining_words):
+        """
+        Update ZKP utility based on the impact on the set of remaining words.
+        """
+        self.zkp_system.evaluate_zkps(remaining_words)
+
+
+# Graph-based filter function
+def filter_words_by_constraints(graph, constraints):
+    words = set(graph.nodes())
+    for constraint in constraints:
+        index, char = constraint['index'], constraint['char']
+        words = {word for word in words if len(word) > index and word[index] == char}
+    return words
+
+# Build the WordNet word graph
+def build_wordnet_graph():
+    G = nx.DiGraph()
+    for synset in wn.all_synsets():
+        for lemma in synset.lemma_names():
+            if lemma.isalpha():
+                G.add_node(lemma)
+    return G
+
+# Run the telepathy game with full ZKP graph optimization
+def telepathy_game_with_wordnet(prover, verifier, wordnet_graph, max_rounds=5):
+    score = max_rounds * 10
+    guessed_correctly = False
+
+    for round_num in range(max_rounds):
+        challenge = verifier.issue_challenge()
+        start, length = challenge
+        response = prover.respond(challenge)
+
+        verifier.add_constraint(challenge, response)
+        guess = verifier.generate_guess(wordnet_graph)
+        if guess is None:
+            return False, score
+
+        remaining_words = filter_words_by_constraints(wordnet_graph, verifier.constraints)
+        verifier.update_zkp_utilities(remaining_words)
+
+        if guess.lower() == prover.secret_word.lower():
+            guessed_correctly = True
+            break
+        score -= 10
+        if not prover.check_response(response, challenge):
+            return False, score
+
+    if guessed_correctly:
+        return True, score
+
+    return False, 0
+
+# Get a random word from WordNet
+def get_random_word_from_wordnet():
+    synsets = wn.all_synsets()
+    synset = random.choice(list(synsets))
+    word = synset.lemmas()[0].name()
+    return word
+
+# Run multiple trials and track the average score improvement
+def run_trials(trials=10):
+    zkp_system = ZKP()
+    wordnet_graph = build_wordnet_graph()
+    scores = []
+    average_scores = []
+
+    total_score = 0  # To keep track of cumulative score
+
+    for i in range(trials):
+        secret_word = get_random_word_from_wordnet()
+        while len(secret_word) < 2:
+            secret_word = get_random_word_from_wordnet()
+        print(secret_word)
+        prover = WordNetProver(secret_word=secret_word)
+        verifier = WordNetVerifier(word_length=len(secret_word), zkp_system=zkp_system)
+        result, score = telepathy_game_with_wordnet(prover, verifier, wordnet_graph)
+        print(score)
+
+        # Update cumulative score and average score
+        total_score += score
+        average_score = total_score / (i + 1)  # Cumulative average score
+        scores.append(score)
+        average_scores.append(average_score)
+
+        # Save ZKP system periodically to track improvements
+        if i % 100 == 0:
+            zkp_system.save_zkp()
+
+    return average_scores
+
+# Plot the average score improvements
+def plot_scores(average_scores):
+    plt.plot(average_scores)
+    plt.xlabel('Trial')
+    plt.ylabel('Average Score')
+    plt.title('Average Score Improvement over Trials')
+    plt.show()
+
+# Main execution for default 10 trials
+if __name__ == "__main__":
+    average_scores = run_trials(trials=1000000)  # Default to 10 runs
+    plot_scores(average_scores)
+
+import pickle
+import matplotlib.pyplot as plt
+
+def visualize_zkp_data(filename='zkp_data.pkl', top_n=10):
+    """
+    Visualizes the ZKP data from the pickle file by plotting the utility and
+    exploration-exploitation probabilities.
+
+    Parameters:
+    - filename: Path to the ZKP pickle file.
+    - top_n: Number of top ZKPs to visualize based on utility.
+    """
+    try:
+        # Load the ZKP data from the pickle file
+        with open(filename, 'rb') as f:
+            zkp_data = pickle.load(f)
+
+        # If there is no data in the file
+        if not zkp_data:
+            print("No ZKP data found.")
+            return
+
+        # Extract ZKP keys, utilities, explore and exploit probabilities
+        zkp_keys = list(zkp_data.keys())
+        zkp_utilities = [zkp['utility'] for zkp in zkp_data.values()]
+        explore_probs = [zkp['explore_prob'] for zkp in zkp_data.values()]
+        exploit_probs = [zkp['exploit_prob'] for zkp in zkp_data.values()]
+
+        # Sort ZKPs by utility to get the top-N
+        sorted_indices = sorted(range(len(zkp_utilities)), key=lambda i: zkp_utilities[i], reverse=True)[:top_n]
+        top_zkp_keys = [zkp_keys[i] for i in sorted_indices]
+        top_zkp_utilities = [zkp_utilities[i] for i in sorted_indices]
+        top_explore_probs = [explore_probs[i] for i in sorted_indices]
+        top_exploit_probs = [exploit_probs[i] for i in sorted_indices]
+
+        # Visualization: Bar chart of ZKP utilities and probabilities
+        plt.figure(figsize=(10, 6))
+
+        # Plot utilities
+        plt.barh(top_zkp_keys, top_zkp_utilities, color='blue', alpha=0.7, label='Utility')
+
+        # Overlay explore and exploit probabilities
+        plt.scatter(top_zkp_utilities, top_zkp_keys, color='red', label='Explore Prob', marker='o')
+        plt.scatter(top_zkp_utilities, top_zkp_keys, color='green', label='Exploit Prob', marker='x')
+
+        # Add labels and title
+        plt.xlabel('Utility / Probability')
+        plt.title(f'Top {top_n} ZKP Utilities and Exploration/Exploitation Probabilities')
+        plt.legend(loc='upper right')
+        plt.grid(True)
+        plt.show()
+
+    except FileNotFoundError:
+        print(f"File '{filename}' not found.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+#visualize_zkp_data(filename='zkp_data.pkl', top_n=100)
+
+
+
