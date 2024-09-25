@@ -981,6 +981,14 @@ zkp.formal_verification(encrypted_message_for_bob, partition_challenges, partiti
 # IPFS test example
 #zkp.ipfs_test_example()
 
+#Monster Group Symmetry implementation
+def monster_symmetry(values):
+    symmetries = []
+    for i in range(0, len(values) - 2, 1):  # Step by 1 to increase sensitivity
+        if abs(values[i] - values[i+2]) / values[i] < 0.01:  # Detecting symmetric patterns with relative threshold
+            symmetries.append((i, values[i+1]))
+    return symmetries
+
 # Towards a universal unary zero zero knowledge SNARK generator
 import ast
 import inspect
