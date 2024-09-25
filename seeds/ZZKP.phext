@@ -980,3 +980,429 @@ zkp.formal_verification(encrypted_message_for_bob, partition_challenges, partiti
 
 # IPFS test example
 #zkp.ipfs_test_example()
+
+# Towards a universal unary zero zero knowledge SNARK generator
+import ast
+import inspect
+from decimal import Decimal, getcontext
+
+def borwein_pi(n_terms, precision):
+    from decimal import Decimal, getcontext
+
+    getcontext().prec = precision + 5  # Extra precision for intermediate steps
+
+    sqrt2 = Decimal(2).sqrt()
+    y = sqrt2 - 1
+    a = Decimal(6) - Decimal(4) * sqrt2
+
+    for n in range(n_terms):
+        y4 = y ** 4
+        root = (1 - y4).sqrt().sqrt()  # Compute the fourth root
+        y = (1 - root) / (1 + root)
+        factor = (1 + y) ** 4
+        power_of_two = 2 ** (2 * n + 3)
+        y_term = y * (1 + y + y ** 2)
+        a = a * factor - power_of_two * y_term
+
+    pi_approx = 1 / a
+    return +pi_approx  # Unary plus applies the precision
+
+# Step 1: Parse the code into an AST
+source_code = inspect.getsource(borwein_pi)
+parsed_ast = ast.parse(source_code)
+
+# Initialize the circuit and variables
+circuit = []
+variables = {}
+
+# Initialize tmp_counter
+tmp_counter = 0
+
+def get_next_tmp_var():
+    global tmp_counter
+    tmp_var = f"tmp{tmp_counter}"
+    tmp_counter +=1
+    return tmp_var
+
+# Class to represent circuit nodes
+class CircuitNode:
+    def __init__(self, operation, inputs, output):
+        self.operation = operation
+        self.inputs = inputs
+        self.output = output
+
+    def __repr__(self):
+        input_str = ', '.join([str(inp) for inp in self.inputs])
+        return f"{self.output} = {self.operation}({input_str})"
+
+# Helper function to extract function names
+def get_func_name(func):
+    if isinstance(func, ast.Name):
+        return func.id
+    elif isinstance(func, ast.Attribute):
+        return func.attr  # Only return the method name (e.g., 'sqrt')
+    else:
+        # Debugging statement to identify unexpected node types
+        print(f"DEBUG: get_func_name called with unsupported node type: {type(func)}")
+        raise NotImplementedError(f"Unsupported function type: {type(func)}. AST dump: {ast.dump(func)}")
+
+# Function to get operands
+def get_operand(operand, variables):
+    if isinstance(operand, ast.Constant):  # For Python 3.8+
+        value = operand.value
+        if isinstance(value, (int, float, Decimal)):
+            return Decimal(value)
+        else:
+            raise NotImplementedError(f"Unsupported constant type: {type(value)}")
+    elif isinstance(operand, ast.Num):  # For Python <3.8
+        return Decimal(operand.n)
+    elif isinstance(operand, ast.Name):
+        # Return the value from variables or the name itself
+        return variables.get(operand.id, operand.id)
+    elif isinstance(operand, ast.BinOp):
+        left = get_operand(operand.left, variables)
+        right = get_operand(operand.right, variables)
+        op_node = operand.op
+        if isinstance(op_node, ast.Add):
+            op = 'add'
+        elif isinstance(op_node, ast.Sub):
+            op = 'sub'
+        elif isinstance(op_node, ast.Mult):
+            op = 'mul'
+        elif isinstance(op_node, ast.Div):
+            op = 'div'
+        elif isinstance(op_node, ast.Pow):
+            op = 'pow'
+        else:
+            raise NotImplementedError(f"Unsupported binary operator: {type(op_node)}")
+        temp_var = get_next_tmp_var()
+        circuit.append(CircuitNode(op, [left, right], temp_var))
+        return temp_var
+    elif isinstance(operand, ast.Call):
+        func_name = get_func_name(operand.func)
+        if func_name == 'Decimal':
+            # Handle Decimal constructor as a constant
+            if len(operand.args) != 1:
+                raise NotImplementedError("Decimal constructor with multiple arguments is not supported.")
+            arg = get_operand(operand.args[0], variables)
+            return Decimal(arg)
+        else:
+            # Handle other function calls if necessary
+            args = [get_operand(arg, variables) for arg in operand.args]
+            temp_var = get_next_tmp_var()
+            circuit.append(CircuitNode(func_name, args, temp_var))
+            return temp_var
+    elif isinstance(operand, ast.Attribute):
+        value = get_operand(operand.value, variables)
+        attr = operand.attr
+        # Assume it's a method call like .sqrt()
+        temp_var = get_next_tmp_var()
+        circuit.append(CircuitNode(attr, [value], temp_var))
+        return temp_var
+    elif isinstance(operand, ast.UnaryOp):
+        operand_value = get_operand(operand.operand, variables)
+        if isinstance(operand.op, ast.USub):
+            op = 'neg'
+        elif isinstance(operand.op, ast.UAdd):
+            op = 'pos'
+        else:
+            raise NotImplementedError(f"Unsupported unary operator: {type(operand.op)}")
+        temp_var = get_next_tmp_var()
+        circuit.append(CircuitNode(op, [operand_value], temp_var))
+        return temp_var
+    else:
+        # Debugging statement to identify unexpected node types
+        print(f"DEBUG: get_operand called with unsupported node type: {type(operand)}")
+        raise NotImplementedError(f"Unsupported operand type: {type(operand)}")
+
+# Helper function to extract target names
+def get_target_name(target):
+    if isinstance(target, ast.Name):
+        return target.id
+    elif isinstance(target, ast.Attribute):
+        # Check if the base is a call to getcontext()
+        if isinstance(target.value, ast.Call):
+            func_name = get_func_name(target.value.func)
+            if func_name == 'getcontext':
+                # Special case: getcontext().prec
+                return 'getcontext().prec'
+            else:
+                # Other attribute assignments on function calls are not handled
+                raise NotImplementedError(f"Unsupported attribute assignment target: {func_name}.{target.attr}")
+        else:
+            # Regular attribute assignment
+            value = get_target_name(target.value)
+            return f"{value}.{target.attr}"
+    else:
+        # Debugging statement to identify unexpected target types
+        print(f"DEBUG: get_target_name called with unsupported target type: {type(target)}")
+        raise NotImplementedError(f"Unsupported assignment target type: {type(target)}")
+
+# Function to traverse the AST and build the circuit
+def ast_to_circuit(node, circuit, variables):
+    if isinstance(node, ast.FunctionDef):
+        # Process function arguments
+        for arg in node.args.args:
+            arg_name = arg.arg
+            if arg_name not in variables:
+                variables[arg_name] = arg_name  # Use the name as a placeholder
+        for stmt in node.body:
+            ast_to_circuit(stmt, circuit, variables)
+    elif isinstance(node, ast.Assign):
+        target = get_target_name(node.targets[0])
+        # Skip assignments to getcontext().prec
+        if target == 'getcontext().prec':
+            # Handle setting precision
+            if isinstance(node.value, ast.BinOp):
+                if isinstance(node.value.op, ast.Add):
+                    left = get_operand(node.value.left, variables)
+                    right = get_operand(node.value.right, variables)
+                    # Convert to Decimal if necessary
+                    if isinstance(left, int):
+                        left = Decimal(left)
+                    if isinstance(right, int):
+                        right = Decimal(right)
+                    if isinstance(left, Decimal) and isinstance(right, Decimal):
+                        new_prec = int(left + right)
+                        getcontext().prec = new_prec
+                    else:
+                        raise ValueError(f"Operands for getcontext().prec addition must be Decimals or ints. Got {type(left)} and {type(right)}")
+                else:
+                    raise NotImplementedError(f"Unsupported operator in getcontext().prec assignment: {type(node.value.op)}")
+            elif isinstance(node.value, (ast.Num, ast.Constant)):
+                value = get_operand(node.value, variables)
+                if isinstance(value, Decimal):
+                    new_prec = int(value)
+                    getcontext().prec = new_prec
+                elif isinstance(value, int):
+                    new_prec = value
+                    getcontext().prec = new_prec
+                else:
+                    raise ValueError(f"Value for getcontext().prec must be a Decimal or int. Got {type(value)}")
+            else:
+                # Handle complex expressions if any
+                raise NotImplementedError(f"Unsupported expression for getcontext().prec assignment: {ast.dump(node.value)}")
+            return
+        # Handle assignments to variables
+        expr = get_operand(node.value, variables)
+        circuit.append(CircuitNode('assign', [expr], target))
+    elif isinstance(node, ast.Return):
+        ret_val = get_operand(node.value, variables)
+        circuit.append(CircuitNode('assign', [ret_val], 'return'))
+    elif isinstance(node, ast.For):
+        # Simplify: Unroll the loop using the actual value of 'n_terms'
+        if isinstance(node.target, ast.Name) and isinstance(node.iter, ast.Call):
+            loop_var = node.target.id
+            iter_func = node.iter.func.id
+            if iter_func == 'range':
+                iter_args = [get_operand(arg, variables) for arg in node.iter.args]
+                # Convert arguments to integers using their values from variables
+                iter_args_int = []
+                for arg in iter_args:
+                    if isinstance(arg, Decimal):
+                        iter_args_int.append(int(arg))
+                    elif isinstance(arg, int):
+                        iter_args_int.append(arg)
+                    elif isinstance(arg, str):
+                        # Attempt to get the value from variables
+                        arg_val = variables.get(arg, None)
+                        if isinstance(arg_val, Decimal):
+                            iter_args_int.append(int(arg_val))
+                        elif isinstance(arg_val, int):
+                            iter_args_int.append(arg_val)
+                        else:
+                            raise ValueError(f"Cannot convert '{arg}' to int.")
+                    else:
+                        raise ValueError(f"Unsupported argument type in range: {type(arg)}")
+                if len(iter_args_int) == 1:
+                    loop_end = iter_args_int[0]
+                    loop_range = range(loop_end)
+                elif len(iter_args_int) == 2:
+                    loop_start = iter_args_int[0]
+                    loop_end = iter_args_int[1]
+                    loop_range = range(loop_start, loop_end)
+                elif len(iter_args_int) == 3:
+                    loop_start = iter_args_int[0]
+                    loop_end = iter_args_int[1]
+                    loop_step = iter_args_int[2]
+                    loop_range = range(loop_start, loop_end, loop_step)
+                else:
+                    raise NotImplementedError("Unsupported range arguments")
+                for i in loop_range:
+                    variables[loop_var] = Decimal(i)
+                    for stmt in node.body:
+                        ast_to_circuit(stmt, circuit, variables)
+    elif isinstance(node, ast.ImportFrom):
+        # Debugging statement to indicate that ImportFrom is being skipped
+        print(f"DEBUG: Skipping ImportFrom node: {ast.dump(node)}")
+        # Since ImportFrom is already handled at the start, we can safely skip it
+        pass
+    else:
+        # Debugging statement to identify unexpected node types
+        print(f"DEBUG: ast_to_circuit called with unsupported node type: {type(node)}")
+        raise NotImplementedError(f"Unsupported AST node type: {type(node)}")
+
+# Step 2: Initialize initial inputs
+# Set initial precision
+getcontext().prec = 1005  # Set precision
+
+# Precompute initial variables
+sqrt2 = Decimal(2).sqrt()
+y_initial = sqrt2 - 1
+a_initial = Decimal(6) - Decimal(4) * sqrt2
+
+initial_inputs = {
+    'n_terms': 3,
+    'precision': 1005,
+    'sqrt2': sqrt2,
+    'y': y_initial,
+    'a': a_initial,
+}
+
+# Copy initial inputs into variables
+variables.update(initial_inputs)
+
+# Process the AST to build the circuit
+for node in parsed_ast.body:
+    ast_to_circuit(node, circuit, variables)
+
+# Step 3: Simulate zk-SNARK proof generation
+def simulate_zk_snark(circuit, inputs):
+    witness = inputs.copy()
+    for gate in circuit:
+        op = gate.operation
+        inp_values = []
+        for inp in gate.inputs:
+            if isinstance(inp, str):
+                if inp in witness:
+                    inp_val = witness[inp]
+                    inp_values.append(inp_val)
+                else:
+                    # Attempt to convert to Decimal if possible
+                    try:
+                        inp_val = Decimal(inp)
+                        inp_values.append(inp_val)
+                    except:
+                        inp_values.append(None)
+            else:
+                inp_values.append(inp)
+        try:
+            if op == 'add':
+                result = inp_values[0] + inp_values[1]
+            elif op == 'sub':
+                result = inp_values[0] - inp_values[1]
+            elif op == 'mul':
+                result = inp_values[0] * inp_values[1]
+            elif op == 'div':
+                result = inp_values[0] / inp_values[1]
+            elif op == 'pow':
+                result = inp_values[0] ** inp_values[1]
+            elif op == 'sqrt':
+                result = inp_values[0].sqrt()
+            elif op == 'neg':
+                result = -inp_values[0]
+            elif op == 'pos':
+                result = +inp_values[0]
+            elif op == 'assign':
+                # Assign the value directly
+                if isinstance(inp_values[0], str) and inp_values[0].startswith('tmp'):
+                    result = witness.get(inp_values[0], None)
+                else:
+                    result = inp_values[0]
+            else:
+                # Handle other function calls (methods on Decimal)
+                # Assuming op is the method name
+                func = getattr(Decimal, op, None)
+                if func:
+                    # Determine number of arguments
+                    if len(inp_values) == 1:
+                        result = func(inp_values[0])
+                    elif len(inp_values) == 2:
+                        result = func(inp_values[0], inp_values[1])
+                    else:
+                        result = func(*inp_values)
+                else:
+                    raise NotImplementedError(f"Operation '{op}' not implemented.")
+            # Assign the result to the output variable
+            witness[gate.output] = result
+        except Exception as e:
+            print(f"Error computing gate {gate}: {e}")
+            witness[gate.output] = None
+    proof = witness.get('return', None)
+    return proof, witness
+
+# Simulate the proof generation
+proof, witness = simulate_zk_snark(circuit, variables)
+
+print("\nArithmetic Circuit Representation:")
+for gate in circuit:
+    print(gate)
+
+print(f"\nSimulated proof (pi approximation):\n{proof}")
+
+# Step 4: Root-finding to determine y and a
+# Set desired_value to the value of 'factor'
+if 'factor' in witness:
+    # 'factor' variable exists
+    factor_var = 'factor'
+    desired_value = witness.get(factor_var, None)
+    if desired_value is None:
+        print("\nCannot find 'factor' in witness.")
+else:
+    print("\nCannot find 'factor' in variables.")
+    desired_value = None
+
+def quartic_function(y):
+    return (1 + y)**4 - desired_value
+
+def newton_raphson(f, x0, tolerance=Decimal('1e-50'), max_iterations=1000):
+    x = x0
+    for iteration in range(max_iterations):
+        fx = f(x)
+        h = Decimal('1e-50')
+        dfx = (f(x + h) - fx) / h
+        if dfx == 0:
+            print(f"Zero derivative encountered at iteration {iteration}. No solution found.")
+            return None
+        x_new = x - fx / dfx
+        if abs(x_new - x) < tolerance:
+            print(f"Converged at iteration {iteration}.")
+            return x_new
+        x = x_new
+    print("Exceeded maximum iterations. No solution found.")
+    return None
+
+# Initial guess
+if 'y' in witness:
+    y0 = witness['y']
+else:
+    print("\nCannot find initial 'y' in witness.")
+    y0 = Decimal(0.1)  # Default initial guess
+
+# Find the root
+if desired_value is not None:
+    y_root = newton_raphson(quartic_function, y0)
+    if y_root is not None:
+        print(f"\nFound root y: {y_root}")
+
+        # Compute 'a' based on 'y'
+        def compute_a(y, n_terms=3):
+            sqrt2 = Decimal(2).sqrt()
+            a = Decimal(6) - Decimal(4) * sqrt2
+            for n in range(n_terms):
+                y4 = y ** 4
+                root = (1 - y4).sqrt().sqrt()
+                y = (1 - root) / (1 + root)
+                factor = (1 + y) ** 4
+                power_of_two = Decimal(2) ** (2 * n + 3)
+                y_term = y * (1 + y + y ** 2)
+                a = a * factor - power_of_two * y_term
+            return a
+
+        a_value = compute_a(y_root)
+        print(f"\nComputed a:\n{a_value}")
+    else:
+        print("\nRoot finding did not converge.")
+else:
+    print("\nCannot perform root-finding without a desired value from the circuit.")
+
