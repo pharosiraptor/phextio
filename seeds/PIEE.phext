@@ -1,0 +1,172 @@
+#MIT Licensed
+import mpmath
+import numpy as np
+from scipy.stats import entropy
+from collections import Counter
+import zlib
+import pandas as pd
+
+# Set precision for mpmath calculations
+mpmath.mp.dps = 1000  # 1000 decimal places of precision
+
+# Function to convert a decimal number to any base
+def decimal_to_base(n, base, digits=1000):
+    """Converts a decimal number n to base `base` and returns the first `digits` digits."""
+    base_digits = []
+    fractional_part = n - int(n)
+
+    for _ in range(digits):
+        fractional_part *= base
+        digit = int(fractional_part)
+        base_digits.append(digit)
+        fractional_part -= digit
+
+    return base_digits
+
+# Function to calculate entropy of a digit sequence
+def calculate_entropy(digit_sequence, base):
+    """Calculates the Shannon entropy of the digit sequence."""
+    count = Counter(digit_sequence)
+    probabilities = np.array(list(count.values())) / len(digit_sequence)
+    return entropy(probabilities, base=base)
+
+# Function to calculate mutual information between adjacent digits
+def calculate_pairwise_mutual_info(digit_sequence, base):
+    """Calculates the mutual information between adjacent digits in the sequence."""
+    pairs = [(digit_sequence[i], digit_sequence[i+1]) for i in range(len(digit_sequence)-1)]
+    pair_count = Counter(pairs)
+
+    # Joint probabilities
+    joint_probabilities = np.array(list(pair_count.values())) / len(pairs)
+
+    # Calculate the marginal probabilities
+    marginal_count = Counter(digit_sequence)
+    marginal_probabilities = np.array(list(marginal_count.values())) / len(digit_sequence)
+
+    # Calculate entropy for joint distribution and marginals
+    joint_entropy = entropy(joint_probabilities, base=base)
+    marginal_entropy = entropy(marginal_probabilities, base=base)
+
+    # Mutual information is H(X) + H(Y) - H(X, Y)
+    return 2 * marginal_entropy - joint_entropy
+
+# Function to calculate the cross pairwise entropy between two digit sequences
+def calculate_cross_pairwise_entropy(seq1, seq2, base):
+    """Calculates the cross pairwise entropy between two digit sequences."""
+    pairs = [(seq1[i], seq2[i]) for i in range(min(len(seq1), len(seq2)))]
+    pair_count = Counter(pairs)
+
+    # Joint probabilities
+    joint_probabilities = np.array(list(pair_count.values())) / len(pairs)
+
+    # Cross entropy is calculated over the joint distribution
+    return entropy(joint_probabilities, base=base)
+
+# Function to calculate compression ratio as a proxy for Kolmogorov complexity
+def compression_ratio(seq):
+    """Calculates the compression ratio as a proxy for Kolmogorov complexity."""
+    byte_seq = bytearray(seq)
+    compressed_seq = zlib.compress(byte_seq)
+    return len(compressed_seq) / len(byte_seq)
+
+# Update compression function to handle bases with digits exceeding 255
+def compression_ratio_normalized(seq, base):
+    """Normalizes digit sequence to fit in byte range and calculates compression ratio."""
+    # Normalize the digits to fit within the 0-255 range
+    normalized_seq = [(digit * 255) // (base - 1) for digit in seq]  # Scale to byte range
+    byte_seq = bytearray(normalized_seq)
+    compressed_seq = zlib.compress(byte_seq)
+    return len(compressed_seq) / len(byte_seq)
+
+# Update loop to start from base 2 (excluding base 1)
+results_full_fixed = []
+for base in range(2, 1001):  # Start from base 2 to avoid division by zero
+    pi_base = decimal_to_base(mpmath.pi, base)
+    e_base = decimal_to_base(mpmath.e, base)
+
+    # Calculate entropy
+    entropy_pi = calculate_entropy(pi_base, base)
+    entropy_e = calculate_entropy(e_base, base)
+
+    # Calculate pairwise mutual information
+    mutual_info_pi = calculate_pairwise_mutual_info(pi_base, base)
+    mutual_info_e = calculate_pairwise_mutual_info(e_base, base)
+
+    # Calculate cross pairwise entropy
+    cross_entropy_pi_e = calculate_cross_pairwise_entropy(pi_base, e_base, base)
+
+    # Calculate normalized compression ratios
+    compression_pi = compression_ratio_normalized(pi_base, base)
+    compression_e = compression_ratio_normalized(e_base, base)
+
+    # Store the results for this base
+    results_full_fixed.append({
+        'base': base,
+        'entropy_pi': entropy_pi,
+        'entropy_e': entropy_e,
+        'mutual_info_pi': mutual_info_pi,
+        'mutual_info_e': mutual_info_e,
+        'cross_entropy_pi_e': cross_entropy_pi_e,
+        'compression_pi': compression_pi,
+        'compression_e': compression_e
+    })
+
+# Convert full results to DataFrame for viewing
+df_results_full_fixed = pd.DataFrame(results_full_fixed)
+
+df_results_full_fixed.head()
+
+import matplotlib.pyplot as plt
+
+# Extract data from the DataFrame
+bases = df_results_full_fixed['base']
+entropy_pi = df_results_full_fixed['entropy_pi']
+entropy_e = df_results_full_fixed['entropy_e']
+mutual_info_pi = df_results_full_fixed['mutual_info_pi']
+mutual_info_e = df_results_full_fixed['mutual_info_e']
+cross_entropy_pi_e = df_results_full_fixed['cross_entropy_pi_e']
+compression_pi = df_results_full_fixed['compression_pi']
+compression_e = df_results_full_fixed['compression_e']
+
+# Plot Entropy of Pi and e
+plt.figure(figsize=(10, 6))
+plt.plot(bases, entropy_pi, label="Entropy of Pi", color="blue")
+plt.plot(bases, entropy_e, label="Entropy of e", color="green")
+plt.axvline(x=88, color='red', linestyle='--', label="Base 88")
+plt.title("Entropy of Pi and e Across Different Bases")
+plt.xlabel("Base")
+plt.ylabel("Entropy")
+plt.legend()
+plt.show()
+
+# Plot Pairwise Mutual Information for Pi and e
+plt.figure(figsize=(10, 6))
+plt.plot(bases, mutual_info_pi, label="Mutual Info of Pi", color="blue")
+plt.plot(bases, mutual_info_e, label="Mutual Info of e", color="green")
+plt.axvline(x=88, color='red', linestyle='--', label="Base 88")
+plt.title("Pairwise Mutual Information of Pi and e Across Different Bases")
+plt.xlabel("Base")
+plt.ylabel("Mutual Information")
+plt.legend()
+plt.show()
+
+# Plot Cross Entropy Between Pi and e
+plt.figure(figsize=(10, 6))
+plt.plot(bases, cross_entropy_pi_e, label="Cross Entropy Pi-e", color="purple")
+plt.axvline(x=88, color='red', linestyle='--', label="Base 88")
+plt.title("Cross Entropy Between Pi and e Across Different Bases")
+plt.xlabel("Base")
+plt.ylabel("Cross Entropy")
+plt.legend()
+plt.show()
+
+# Plot Compression Ratio for Pi and e
+plt.figure(figsize=(10, 6))
+plt.plot(bases, compression_pi, label="Compression Ratio of Pi", color="blue")
+plt.plot(bases, compression_e, label="Compression Ratio of e", color="green")
+plt.axvline(x=88, color='red', linestyle='--', label="Base 88")
+plt.title("Compression Ratio of Pi and e Across Different Bases")
+plt.xlabel("Base")
+plt.ylabel("Compression Ratio")
+plt.legend()
+plt.show()
